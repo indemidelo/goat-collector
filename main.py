@@ -34,15 +34,21 @@ def main():
     print(f"  Nuovi mazzi trovati: {len(new_decks)}")
 
     if new_decks:
-        report = compare.build_report(new_decks, owned)
-        print(f"  {len(report)} mazzi hanno carte mancanti nella tua collezione.")
-        notify_telegram.send_report(report)
+        collection.save_deck_requirements(new_decks)
         collection.mark_decks_seen(new_decks)
-    else:
-        print("  Nessun mazzo nuovo, nessuna notifica da inviare.")
-
     if processed_events:
         collection.mark_events_seen(processed_events)
+
+    # Ricalcolo COMPLETO: confrontiamo la collezione aggiornata con TUTTI i
+    # mazzi mai visti (non solo quelli nuovi di oggi), così se nel frattempo
+    # hai comprato una carta, sparisce dalla lista anche senza nuovi mazzi.
+    all_known_decks = collection.get_all_known_decks()
+    report = compare.build_report(all_known_decks, owned)
+    print(f"  {len(report)} carte mancanti in totale su {len(all_known_decks)} mazzi conosciuti.")
+
+    previous_message_ids = collection.get_last_message_ids()
+    new_message_ids = notify_telegram.replace_report(report, previous_message_ids)
+    collection.set_last_message_ids(new_message_ids)
 
     print("✅ Fatto.")
 

@@ -81,13 +81,24 @@ progetto resta solo come riferimento/fallback manuale (funzione
    UTC automaticamente. Puoi anche lanciarlo a mano da Actions → "Daily Goat
    Scan" → "Run workflow"
 
-## Come funziona il confronto
+## Notifiche Telegram: lista sempre aggiornata, non uno storico
 
-Il bot salva in `data/state.db` gli ID dei mazzi già processati, così ogni
-giorno guarda solo quelli nuovi. Per ogni mazzo nuovo, confronta ogni carta
-richiesta (con relativa quantità) contro `collection.csv` e segnala solo le
-carte/quantità mancanti (es. "hai 1 copia di Pot of Greed, il mazzo ne
-richiede 1 → ok"; "hai 0 Delinquent Duo, il mazzo ne richiede 1 → manca").
+Il bot **non accumula messaggi**: ad ogni esecuzione cancella il/i
+messaggio/i precedenti e ne invia uno nuovo con lo stato attuale completo
+delle carte mancanti. In questo modo la chat resta sempre con un'unica
+lista aggiornata, raggruppata per carta (non per mazzo), con l'elenco dei
+mazzi che la richiedono e il link a ciascuno.
+
+Il ricalcolo è **completo ad ogni run**: confronta la collezione con
+*tutti* i mazzi mai visti (non solo quelli nuovi di quel giorno). Questo
+significa che se compri una carta, sparisce dalla lista al run successivo
+anche se quel giorno non è stato pubblicato nessun mazzo nuovo.
+
+Nota tecnica: Telegram permette ai bot di cancellare i propri messaggi solo
+entro 48 ore dall'invio. Nell'uso quotidiano previsto (un run al giorno)
+non è un problema; se il bot resta fermo per più di 2 giorni, il messaggio
+più vecchio potrebbe non essere cancellabile e ne comparirà uno nuovo
+accanto (il bot logga un avviso in quel caso, senza bloccarsi).
 
 ## Rispetto del sito
 

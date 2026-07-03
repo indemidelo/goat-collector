@@ -23,7 +23,24 @@ def _chat_id():
     return chat_id
 
 
+def _delete_message(message_id):
+    url = f"https://api.telegram.org/bot{_bot_token()}/deleteMessage"
+    try:
+        resp = requests.post(url, data={
+            "chat_id": _chat_id(),
+            "message_id": message_id,
+        }, timeout=15)
+        # Non solleviamo eccezioni: un messaggio già cancellato o più
+        # vecchio di 48 ore fa fallire la delete, ma non deve bloccare
+        # l'invio del nuovo report.
+        if not resp.ok:
+            print(f"  ⚠️  Impossibile cancellare il messaggio {message_id}: {resp.text}")
+    except requests.RequestException as e:
+        print(f"  ⚠️  Errore cancellando il messaggio {message_id}: {e}")
+
+
 def _send_message(text):
+    """Ritorna il message_id del messaggio inviato."""
     url = f"https://api.telegram.org/bot{_bot_token()}/sendMessage"
     resp = requests.post(url, data={
         "chat_id": _chat_id(),
@@ -32,12 +49,13 @@ def _send_message(text):
         "disable_web_page_preview": True,
     }, timeout=15)
     resp.raise_for_status()
+    return resp.json()["result"]["message_id"]
 
 
 def format_report(report):
     """Trasforma il report (raggruppato per carta) in una lista di stringhe."""
     if not report:
-        return ["✅ Nessun nuovo mazzo Goat Format con carte mancanti oggi."]
+        return ["✅ Nessuna carta mancante al momento su tutti i mazzi conosciuti."]
 
     n_cards = len(report)
     label = "carta mancante" if n_cards == 1 else "carte mancanti"
@@ -70,6 +88,17 @@ def format_report(report):
     return chunks
 
 
-def send_report(report):
+def replace_report(report, previous_message_ids):
+    """
+    Cancella tutti i messaggi precedenti (previous_message_ids) e invia il
+    nuovo report, così la chat resta sempre con un'unica lista aggiornata
+    di carte mancanti. Ritorna la lista dei nuovi message_id inviati (da
+    salvare per la prossima esecuzione).
+    """
+    for message_id in previous_message_ids:
+        _delete_message(message_id)
+
+    new_ids = []
     for chunk in format_report(report):
-        _send_message(chunk)
+        new_ids.append(_send_message(chunk))
+    return new_ids

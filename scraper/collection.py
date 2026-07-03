@@ -39,6 +39,22 @@ def init_db():
             seen_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS deck_requirements (
+            deck_id TEXT,
+            card_name TEXT,
+            needed INTEGER NOT NULL,
+            deck_name TEXT,
+            deck_url TEXT,
+            event_name TEXT,
+            PRIMARY KEY (deck_id, card_name)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS sent_messages (
+            message_id INTEGER PRIMARY KEY
+        )
+    """)
     conn.commit()
     return conn
 
@@ -141,6 +157,80 @@ def mark_events_seen(events):
     conn.executemany(
         "INSERT OR IGNORE INTO seen_events (event_id, abbreviation) VALUES (?, ?)",
         [(e["id"], e.get("abbreviation")) for e in events],
+    )
+    conn.commit()
+    conn.close()
+
+
+def save_deck_requirements(decks):
+    """
+    Salva TUTTE le carte richieste da ciascun mazzo (non solo quelle
+    mancanti al momento), così che ai run successivi si possa ricalcolare
+    cosa manca in base alla collezione aggiornata, anche per mazzi già
+    visti in passato.
+
+    decks: lista di dict {id, name, url, event_name, cards: [{name, quantity}]}
+    """
+    conn = init_db()
+    rows = []
+    for deck in decks:
+        for card in deck.get("cards", []):
+            rows.append((
+                deck["id"],
+                card["name"],
+                card.get("quantity", 1),
+                deck.get("name"),
+                deck.get("url"),
+                deck.get("event_name"),
+            ))
+    conn.executemany(
+        """INSERT OR REPLACE INTO deck_requirements
+           (deck_id, card_name, needed, deck_name, deck_url, event_name)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        rows,
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_all_known_decks():
+    """
+    Ricostruisce, da deck_requirements, tutti i mazzi mai visti nel formato
+    atteso da compare.build_report: [{id, name, url, event_name, cards: [...]}]
+    """
+    conn = init_db()
+    rows = conn.execute(
+        "SELECT deck_id, card_name, needed, deck_name, deck_url, event_name FROM deck_requirements"
+    ).fetchall()
+    conn.close()
+
+    decks_by_id = {}
+    for deck_id, card_name, needed, deck_name, deck_url, event_name in rows:
+        deck = decks_by_id.setdefault(deck_id, {
+            "id": deck_id,
+            "name": deck_name,
+            "url": deck_url,
+            "event_name": event_name,
+            "cards": [],
+        })
+        deck["cards"].append({"name": card_name, "quantity": needed})
+
+    return list(decks_by_id.values())
+
+
+def get_last_message_ids():
+    conn = init_db()
+    rows = conn.execute("SELECT message_id FROM sent_messages").fetchall()
+    conn.close()
+    return [r[0] for r in rows]
+
+
+def set_last_message_ids(message_ids):
+    conn = init_db()
+    conn.execute("DELETE FROM sent_messages")
+    conn.executemany(
+        "INSERT INTO sent_messages (message_id) VALUES (?)",
+        [(mid,) for mid in message_ids],
     )
     conn.commit()
     conn.close()
