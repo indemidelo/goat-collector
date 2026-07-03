@@ -44,16 +44,23 @@ controlla solo le novità.
 Se in futuro il sito cambia struttura e gli endpoint smettono di funzionare,
 i valori da aggiornare sono tutti centralizzati in `scraper/selectors.py`.
 
-## Passo 1 — La tua collezione
+## Passo 1 — La tua collezione (Google Sheets, sempre aggiornata)
 
-Modifica `collection.csv` con le tue carte, formato:
+Il bot legge la collezione direttamente dal tuo Google Sheet ad ogni
+esecuzione — non serve più esportare/caricare un CSV a mano. Le 4 schede
+collegate (Mostri Effetto, Mostri Fusione, Magie, Trappole) sono già
+configurate in `scraper/selectors.py` (`COLLECTION_SHEET_URLS`).
 
-```csv
-card_name,quantity
-Pot of Greed,1
-Mystical Space Typhoon,3
-Chaos Sorcerer,2
-```
+Una riga nel foglio = una copia posseduta; viene contata solo se ha un
+valore nella colonna **Prezzo** (senza prezzo = non ancora acquisita).
+Ogni volta che modifichi il foglio, la versione pubblicata si aggiorna da
+sola dopo qualche minuto — il prossimo run del bot vedrà i dati freschi.
+
+Se in futuro aggiungi/rimuovi schede o cambi struttura al foglio, aggiorna
+`COLLECTION_SHEET_URLS` e `COLLECTION_SHEET_COLUMNS` in
+`scraper/selectors.py` di conseguenza. Il file `collection.csv` nel
+progetto resta solo come riferimento/fallback manuale (funzione
+`import_collection_csv`, non più usata da `main.py`).
 
 ## Passo 2 — Bot Telegram
 

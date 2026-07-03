@@ -6,18 +6,15 @@ Orchestratore principale. Eseguito ogni giorno dal workflow GitHub Actions
 """
 
 import sys
-from pathlib import Path
 
 from scraper import collection, compare, notify_telegram
 from scraper import fetch_decks
 
-COLLECTION_CSV = Path(__file__).resolve().parent / "collection.csv"
-
 
 def main():
-    print("→ Import collezione da CSV...")
-    n = collection.import_collection_csv(COLLECTION_CSV)
-    print(f"  {n} carte importate/aggiornate.")
+    print("→ Import collezione da Google Sheets...")
+    n_copies, n_unique = collection.import_collection_from_sheets()
+    print(f"  {n_unique} carte uniche, {n_copies} copie totali importate.")
 
     owned = collection.get_collection()
     seen_event_ids = collection.get_seen_event_ids()

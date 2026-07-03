@@ -51,3 +51,22 @@ DECK_DETAIL_SECTIONS = ["main", "extra", "side"]  # ognuna è una lista di {"nam
 # NON committare mai questo valore reale su un repo pubblico: usa un GitHub
 # Secret (vedi README). Ad oggi non è necessario per i mazzi pubblici.
 SESSION_COOKIE = None  # es: "session=abc123; other=xyz"
+
+# Collezione: schede Google Sheets pubblicate come CSV (File -> Condividi ->
+# Pubblica sul web -> singola scheda -> formato CSV). Ogni volta che il
+# foglio viene modificato, questi link restituiscono automaticamente i dati
+# aggiornati (con qualche minuto di ritardo per la ripubblicazione).
+COLLECTION_SHEET_URLS = {
+    "Mostri Effetto": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQT99FFtHxN6zc8-o0wp3LtZUSW74FrDaMwxu-_9E7ySSpMvALbWSZG1qlesCrUMQcDshlaUu5aZ82S/pub?gid=0&single=true&output=csv",
+    "Mostri Fusione": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQT99FFtHxN6zc8-o0wp3LtZUSW74FrDaMwxu-_9E7ySSpMvALbWSZG1qlesCrUMQcDshlaUu5aZ82S/pub?gid=974724877&single=true&output=csv",
+    "Magie": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQT99FFtHxN6zc8-o0wp3LtZUSW74FrDaMwxu-_9E7ySSpMvALbWSZG1qlesCrUMQcDshlaUu5aZ82S/pub?gid=1167948534&single=true&output=csv",
+    "Trappole": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQT99FFtHxN6zc8-o0wp3LtZUSW74FrDaMwxu-_9E7ySSpMvALbWSZG1qlesCrUMQcDshlaUu5aZ82S/pub?gid=903842204&single=true&output=csv",
+}
+
+# Nomi delle colonne nel Google Sheet (devono combaciare con l'intestazione
+# reale del foglio). Una carta viene contata come posseduta solo se ha un
+# valore non vuoto nella colonna Prezzo.
+COLLECTION_SHEET_COLUMNS = {
+    "name_column": "Nome",
+    "price_column": "Prezzo",
+}

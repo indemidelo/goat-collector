@@ -4,8 +4,14 @@ processati, salvati in un piccolo database SQLite (data/state.db).
 """
 
 import csv
+import io
 import sqlite3
+from collections import Counter
 from pathlib import Path
+
+import requests
+
+from . import selectors
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "state.db"
 
@@ -38,7 +44,7 @@ def init_db():
 
 
 def import_collection_csv(csv_path):
-    """Importa/aggiorna la collezione da un file CSV (card_name, quantity)."""
+    """Importa/aggiorna la collezione da un file CSV locale (card_name, quantity)."""
     conn = init_db()
     with open(csv_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -52,6 +58,48 @@ def import_collection_csv(csv_path):
     conn.commit()
     conn.close()
     return len(rows)
+
+
+def import_collection_from_sheets():
+    """
+    Importa/aggiorna la collezione leggendo le schede Google Sheets
+    pubblicate (vedi selectors.COLLECTION_SHEET_URLS). Una riga = una copia
+    posseduta; viene contata solo se ha un valore non vuoto nella colonna
+    Prezzo (le carte senza prezzo si considerano non ancora acquisite).
+
+    Sostituisce interamente la collezione precedente in DB con quella
+    ricalcolata dal foglio (così eventuali rimozioni sul foglio si
+    riflettono anche nel bot).
+    """
+    name_col = selectors.COLLECTION_SHEET_COLUMNS["name_column"]
+    price_col = selectors.COLLECTION_SHEET_COLUMNS["price_column"]
+
+    counter = Counter()
+    for sheet_label, url in selectors.COLLECTION_SHEET_URLS.items():
+        resp = requests.get(url, timeout=20)
+        resp.raise_for_status()
+        # Il CSV pubblicato da Google può includere un BOM UTF-8
+        text = resp.content.decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(text))
+
+        for row in reader:
+            name = (row.get(name_col) or "").strip()
+            price = (row.get(price_col) or "").strip()
+            if not name:
+                continue
+            if not price:
+                continue  # nessun prezzo -> non ancora posseduta
+            counter[name] += 1
+
+    conn = init_db()
+    conn.execute("DELETE FROM collection")  # ricalcolo completo da zero
+    conn.executemany(
+        "INSERT INTO collection (card_name, quantity) VALUES (?, ?)",
+        list(counter.items()),
+    )
+    conn.commit()
+    conn.close()
+    return sum(counter.values()), len(counter)
 
 
 def get_collection():
