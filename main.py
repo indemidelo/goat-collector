@@ -47,8 +47,13 @@ def main():
     print(f"  {len(report)} carte mancanti in totale su {len(all_known_decks)} mazzi conosciuti.")
 
     previous_message_ids = collection.get_last_message_ids()
+    print(f"  Message_id precedenti trovati in state.db: {previous_message_ids}")
+
     new_message_ids = notify_telegram.replace_report(report, previous_message_ids)
+    print(f"  Nuovi message_id inviati: {new_message_ids}")
+
     collection.set_last_message_ids(new_message_ids)
+    print(f"  Salvati in state.db per il prossimo run.")
 
     print("✅ Fatto.")
 

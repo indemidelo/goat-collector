@@ -32,9 +32,13 @@ def _delete_message(message_id):
         }, timeout=15)
         # Non solleviamo eccezioni: un messaggio già cancellato o più
         # vecchio di 48 ore fa fallire la delete, ma non deve bloccare
-        # l'invio del nuovo report.
-        if not resp.ok:
-            print(f"  ⚠️  Impossibile cancellare il messaggio {message_id}: {resp.text}")
+        # l'invio del nuovo report. Controlliamo sia lo status HTTP sia il
+        # campo "ok" nel body (Telegram a volte risponde 200 con ok:false).
+        body = resp.json()
+        if not resp.ok or not body.get("ok", False):
+            print(f"  ⚠️  Impossibile cancellare il messaggio {message_id}: {body}")
+        else:
+            print(f"  🗑️  Messaggio {message_id} cancellato.")
     except requests.RequestException as e:
         print(f"  ⚠️  Errore cancellando il messaggio {message_id}: {e}")
 
