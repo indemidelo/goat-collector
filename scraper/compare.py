@@ -1,6 +1,6 @@
 """
-Confronta le carte richieste da un mazzo con la collezione dell'utente e
-ritorna solo ciò che manca.
+Confronta le carte richieste dai mazzi con la collezione dell'utente e
+ritorna le carte mancanti, raggruppate per carta (non per mazzo).
 """
 
 
@@ -30,18 +30,37 @@ def missing_cards_for_deck(deck, owned_collection):
 
 def build_report(new_decks, owned_collection):
     """
-    Ritorna una lista di dict per i mazzi che hanno almeno una carta
-    mancante: [{"deck_name", "deck_url", "missing_cards": [...]}, ...]
+    Raggruppamento per CARTA mancante (non per mazzo).
+
+    Ritorna una lista ordinata alfabeticamente per nome carta:
+    [
+      {
+        "card_name": "Sinister Serpent",
+        "decks": [
+          {"deck_name", "deck_url", "event_name", "missing"},
+          ...
+        ]
+      },
+      ...
+    ]
+    "missing" qui è quanto manca di quella carta PER QUEL SPECIFICO mazzo
+    (può variare da mazzo a mazzo se ne servono quantità diverse).
     """
-    report = []
+    by_card = {}
+
     for deck in new_decks:
         missing = missing_cards_for_deck(deck, owned_collection)
-        if missing:
-            report.append({
-                "deck_id": deck["id"],
+        for card in missing:
+            entry = by_card.setdefault(card["name"], [])
+            entry.append({
                 "deck_name": deck.get("name") or deck["id"],
                 "deck_url": deck.get("url"),
                 "event_name": deck.get("event_name"),
-                "missing_cards": missing,
+                "missing": card["missing"],
             })
+
+    report = [
+        {"card_name": name, "decks": decks}
+        for name, decks in sorted(by_card.items())
+    ]
     return report

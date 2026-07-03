@@ -35,24 +35,23 @@ def _send_message(text):
 
 
 def format_report(report):
-    """Trasforma il report in una lista di stringhe (una per chunk di messaggio)."""
+    """Trasforma il report (raggruppato per carta) in una lista di stringhe."""
     if not report:
         return ["✅ Nessun nuovo mazzo Goat Format con carte mancanti oggi."]
 
-    lines = [f"🐐 <b>{len(report)} nuovo/i mazzo/i Goat Format con carte mancanti</b>\n"]
+    n_cards = len(report)
+    label = "carta mancante" if n_cards == 1 else "carte mancanti"
+    lines = [f"🐐 <b>{n_cards} {label} nei nuovi mazzi</b>\n"]
 
     for entry in report:
-        header = f"\n<b>{entry['deck_name']}</b>"
-        if entry.get("event_name"):
-            header += f" — {entry['event_name']}"
-        lines.append(header)
-        if entry.get("deck_url"):
-            lines.append(entry["deck_url"])
-        for card in entry["missing_cards"]:
-            lines.append(
-                f"  • {card['name']}: hai {card['owned']}/{card['needed']} "
-                f"(mancano {card['missing']})"
-            )
+        lines.append(f"\n🃏 <b>{entry['card_name']}</b>")
+        for deck in entry["decks"]:
+            label = deck["deck_name"]
+            if deck.get("event_name"):
+                label += f" — {deck['event_name']}"
+            if deck.get("deck_url"):
+                label = f'<a href="{deck["deck_url"]}">{label}</a>'
+            lines.append(f"  • mancano {deck['missing']} — {label}")
 
     full_text = "\n".join(lines)
 
