@@ -52,13 +52,22 @@ jobs:
           fi
           git commit -m "Aggiorna stato [skip ci]"
 
-          # Rete di sicurezza extra: se il push viene comunque rifiutato
-          # (es. race condition residua), riprova con pull --rebase.
+          # Rete di sicurezza: se il push viene rifiutato perché nel
+          # frattempo è arrivato un altro commit (race condition), state.db
+          # è un file binario e Git non può fare merge automatico -> in
+          # caso di conflitto teniamo la versione appena calcolata da
+          # QUESTO run (è quella corretta e aggiornata).
           for i in 1 2 3; do
             if git push; then
               exit 0
             fi
-            echo "Push rifiutato, riprovo con pull --rebase (tentativo $i)..."
-            git pull --rebase origin main
+            echo "Push rifiutato, riprovo (tentativo $i)..."
+            git fetch origin main
+            if ! GIT_EDITOR=true git rebase origin/main; then
+              echo "Conflitto su state.db: tengo la versione di questo run."
+              git checkout --ours data/state.db
+              git add data/state.db
+              GIT_EDITOR=true git rebase --continue
+            fi
           done
           git push
