@@ -9,6 +9,13 @@ on:
 permissions:
   contents: write  # necessario per poter salvare lo stato (data/state.db)
 
+# Evita che due esecuzioni girino in parallelo (es. run manuale lanciato
+# mentre quello schedulato è già in corso): la seconda aspetta che la prima
+# finisca invece di girare in contemporanea e generare conflitti di push.
+concurrency:
+  group: daily-goat-scan
+  cancel-in-progress: false
+
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -34,10 +41,24 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
 
-      - name: Salva lo stato aggiornato (mazzi già visti)
+      - name: Salva lo stato aggiornato (mazzi/eventi visti, collezione, messaggi)
         run: |
           git config user.name "goat-collector-bot"
           git config user.email "actions@github.com"
           git add data/state.db
-          git diff --staged --quiet || git commit -m "Aggiorna stato mazzi visti [skip ci]"
+          if git diff --staged --quiet; then
+            echo "Nessuna modifica da salvare."
+            exit 0
+          fi
+          git commit -m "Aggiorna stato [skip ci]"
+
+          # Rete di sicurezza extra: se il push viene comunque rifiutato
+          # (es. race condition residua), riprova con pull --rebase.
+          for i in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rifiutato, riprovo con pull --rebase (tentativo $i)..."
+            git pull --rebase origin main
+          done
           git push
