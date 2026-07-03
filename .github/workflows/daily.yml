@@ -1,0 +1,43 @@
+name: Daily Goat Scan
+
+on:
+  schedule:
+    # Ogni giorno alle 9:00 UTC. Modifica l'orario a piacere.
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}  # permette anche l'avvio manuale da GitHub
+
+permissions:
+  contents: write  # necessario per poter salvare lo stato (data/state.db)
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installa dipendenze
+        run: pip install -r requirements.txt
+
+      # Se in futuro passi allo scraper con Playwright, scommenta:
+      # - name: Installa browser Playwright
+      #   run: playwright install --with-deps chromium
+
+      - name: Esegui lo scan
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Salva lo stato aggiornato (mazzi già visti)
+        run: |
+          git config user.name "goat-collector-bot"
+          git config user.email "actions@github.com"
+          git add data/state.db
+          git diff --staged --quiet || git commit -m "Aggiorna stato mazzi visti [skip ci]"
+          git push
