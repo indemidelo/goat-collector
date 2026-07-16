@@ -16,6 +16,10 @@ def main():
     n_copies, n_unique = collection.import_collection_from_sheets()
     print(f"  {n_unique} carte uniche, {n_copies} copie totali importate.")
 
+    print("→ Import carte indesiderate (Unwanted Cards)...")
+    unwanted = collection.get_unwanted_cards()
+    print(f"  {len(unwanted)} carte da escludere sempre dalle notifiche.")
+
     owned = collection.get_collection()
     seen_event_ids = collection.get_seen_event_ids()
     seen_deck_ids = collection.get_seen_deck_ids()
@@ -43,7 +47,7 @@ def main():
     # mazzi mai visti (non solo quelli nuovi di oggi), così se nel frattempo
     # hai comprato una carta, sparisce dalla lista anche senza nuovi mazzi.
     all_known_decks = collection.get_all_known_decks()
-    report = compare.build_report(all_known_decks, owned)
+    report = compare.build_report(all_known_decks, owned, excluded_names=unwanted)
     print(f"  {len(report)} carte mancanti in totale su {len(all_known_decks)} mazzi conosciuti.")
 
     previous_message_ids = collection.get_last_message_ids()

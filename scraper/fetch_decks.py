@@ -90,6 +90,13 @@ def fetch_deck_cards(deck_id):
     return [{"name": name, "quantity": qty} for name, qty in counts.items()]
 
 
+def _capitalize_words(s):
+    """Replica la funzione capitalize(str, eachWord=true) del sito originale."""
+    if not s:
+        return s
+    return " ".join(word[:1].upper() + word[1:] if word else word for word in s.split(" "))
+
+
 def fetch_new_decks(seen_event_ids, seen_deck_ids, max_events=None, delay_seconds=1.5):
     """
     Ritorna: (nuovi_mazzi_con_carte, eventi_processati)
@@ -123,7 +130,7 @@ def fetch_new_decks(seen_event_ids, seen_deck_ids, max_events=None, delay_second
                 print(f"  ⚠️  Errore leggendo mazzo {deck['id']}: {e}")
                 continue
 
-            deck_name = deck["type"] or f"Deck {deck['id']}"
+            deck_name = _capitalize_words(deck["type"]) or f"Deck {deck['id']}"
             builder = deck.get("builder")
             display_name = f"{deck_name} ({builder})" if builder else deck_name
 

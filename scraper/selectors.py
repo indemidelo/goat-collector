@@ -70,3 +70,8 @@ COLLECTION_SHEET_COLUMNS = {
     "name_column": "Nome",
     "price_column": "Prezzo",
 }
+
+# Scheda "Unwanted Cards": carte che non ti interessano e vanno sempre
+# escluse dalle notifiche, indipendentemente da prezzo/possesso.
+UNWANTED_CARDS_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQT99FFtHxN6zc8-o0wp3LtZUSW74FrDaMwxu-_9E7ySSpMvALbWSZG1qlesCrUMQcDshlaUu5aZ82S/pub?gid=1833902676&single=true&output=csv"
+UNWANTED_CARDS_NAME_COLUMN = "Nome"
