@@ -69,11 +69,16 @@ def fetch_event_detail(abbreviation):
 
 def fetch_deck_detail(deck_id):
     """
-    Livello 3: dettaglio mazzo. Ritorna sia le carte (main+extra+side,
-    tallied per nome) sia type/builder letti dal dettaglio stesso — la
-    stessa fonte dati che alimenta la pagina del mazzo sul sito, quindi
-    più affidabile del campo "type" restituito nel riepilogo topDecks
-    dell'evento (che a volte risulta vuoto).
+    Livello 3: dettaglio mazzo. Ritorna le carte (main+extra+side, tallied
+    per nome) più il nome del mazzo e del builder, letti dai campi "piatti"
+    confermati direttamente dalla risposta reale dell'API:
+    - "deckTypeName": nome leggibile dell'archetipo, già ben capitalizzato
+      (es. "Library FTK") -> molto più affidabile del campo "type" (che è
+      solo lo slug interno, es. "library ftk", e in alcuni riepiloghi
+      risulta anche vuoto)
+    - "builderName": nome del giocatore come stringa semplice -> più
+      affidabile del campo "builder", che per alcuni eventi (es. con
+      integrazione Discord) è un intero oggetto {id, name, discordId, ...}
     """
     s = _session()
     url = selectors.DECK_DETAIL_URL.format(deck_id=deck_id)
@@ -89,9 +94,12 @@ def fetch_deck_detail(deck_id):
                 continue
             counts[name] = counts.get(name, 0) + 1
 
+    type_name = payload.get("deckTypeName") or _capitalize_words(payload.get("type"))
+    builder_name = payload.get("builderName") or _extract_builder_name(payload.get("builder"))
+
     return {
-        "type": payload.get("type"),
-        "builder": payload.get("builder"),
+        "type_name": type_name,
+        "builder_name": builder_name,
         "cards": [{"name": name, "quantity": qty} for name, qty in counts.items()],
     }
 
@@ -101,6 +109,18 @@ def _capitalize_words(s):
     if not s:
         return s
     return " ".join(word[:1].upper() + word[1:] if word else word for word in s.split(" "))
+
+
+def _extract_builder_name(builder):
+    """
+    Il campo builder è di solito una stringa, ma per alcuni eventi (es.
+    quelli con integrazione Discord) arriva come oggetto
+    {id, name, discordId, discordPfp, ...}. In quel caso estraiamo solo
+    il nome leggibile.
+    """
+    if isinstance(builder, dict):
+        return builder.get("name") or builder.get("discordId")
+    return builder
 
 
 def fetch_new_decks(seen_event_ids, seen_deck_ids, max_events=None, delay_seconds=1.5):
@@ -136,13 +156,8 @@ def fetch_new_decks(seen_event_ids, seen_deck_ids, max_events=None, delay_second
                 print(f"  ⚠️  Errore leggendo mazzo {deck['id']}: {e}")
                 continue
 
-            # Preferiamo type/builder dal dettaglio del mazzo (più
-            # affidabile); se anche quello è vuoto, ripieghiamo sul
-            # riepilogo dell'evento, poi sull'id come ultima risorsa.
-            raw_type = detail.get("type") or deck.get("type")
-            builder = detail.get("builder") or deck.get("builder")
-
-            deck_name = _capitalize_words(raw_type) or f"Deck {deck['id']}"
+            deck_name = detail["type_name"] or f"Deck {deck['id']}"
+            builder = detail["builder_name"]
             display_name = f"{deck_name} ({builder})" if builder else deck_name
 
             all_new_decks.append({
