@@ -67,11 +67,13 @@ def fetch_event_detail(abbreviation):
     return decks
 
 
-def fetch_deck_cards(deck_id):
+def fetch_deck_detail(deck_id):
     """
-    Livello 3: dettaglio mazzo. Ritorna le carte tallied per nome, sommando
-    main + extra + side (sono zone fisicamente separate: servono copie
-    distinte per ciascuna).
+    Livello 3: dettaglio mazzo. Ritorna sia le carte (main+extra+side,
+    tallied per nome) sia type/builder letti dal dettaglio stesso — la
+    stessa fonte dati che alimenta la pagina del mazzo sul sito, quindi
+    più affidabile del campo "type" restituito nel riepilogo topDecks
+    dell'evento (che a volte risulta vuoto).
     """
     s = _session()
     url = selectors.DECK_DETAIL_URL.format(deck_id=deck_id)
@@ -87,7 +89,11 @@ def fetch_deck_cards(deck_id):
                 continue
             counts[name] = counts.get(name, 0) + 1
 
-    return [{"name": name, "quantity": qty} for name, qty in counts.items()]
+    return {
+        "type": payload.get("type"),
+        "builder": payload.get("builder"),
+        "cards": [{"name": name, "quantity": qty} for name, qty in counts.items()],
+    }
 
 
 def _capitalize_words(s):
@@ -125,20 +131,25 @@ def fetch_new_decks(seen_event_ids, seen_deck_ids, max_events=None, delay_second
                 continue
             time.sleep(delay_seconds)  # gentile col server
             try:
-                cards = fetch_deck_cards(deck["id"])
+                detail = fetch_deck_detail(deck["id"])
             except Exception as e:
                 print(f"  ⚠️  Errore leggendo mazzo {deck['id']}: {e}")
                 continue
 
-            deck_name = _capitalize_words(deck["type"]) or f"Deck {deck['id']}"
-            builder = deck.get("builder")
+            # Preferiamo type/builder dal dettaglio del mazzo (più
+            # affidabile); se anche quello è vuoto, ripieghiamo sul
+            # riepilogo dell'evento, poi sull'id come ultima risorsa.
+            raw_type = detail.get("type") or deck.get("type")
+            builder = detail.get("builder") or deck.get("builder")
+
+            deck_name = _capitalize_words(raw_type) or f"Deck {deck['id']}"
             display_name = f"{deck_name} ({builder})" if builder else deck_name
 
             all_new_decks.append({
                 "id": deck["id"],
                 "name": display_name,
                 "url": f"https://formatlibrary.com/decks/{deck['id']}",
-                "cards": cards,
+                "cards": detail["cards"],
                 "event_name": event["name"],
             })
 

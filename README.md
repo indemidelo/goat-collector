@@ -62,6 +62,14 @@ Se in futuro aggiungi/rimuovi schede o cambi struttura al foglio, aggiorna
 progetto resta solo come riferimento/fallback manuale (funzione
 `import_collection_csv`, non più usata da `main.py`).
 
+## Carte indesiderate (Unwanted Cards)
+
+Una scheda separata del foglio ("Unwanted Cards", configurata in
+`UNWANTED_CARDS_SHEET_URL`) elenca le carte a cui non sei interessato.
+Queste vengono **sempre escluse** dalle notifiche, anche se non le
+possiedi e non hanno un prezzo compilato — a differenza delle altre 4
+schede, qui il prezzo non conta: basta che il nome compaia nella lista.
+
 ## Passo 2 — Bot Telegram
 
 1. Su Telegram cerca **@BotFather**, invia `/newbot`, segui le istruzioni →
@@ -99,6 +107,20 @@ entro 48 ore dall'invio. Nell'uso quotidiano previsto (un run al giorno)
 non è un problema; se il bot resta fermo per più di 2 giorni, il messaggio
 più vecchio potrebbe non essere cancellabile e ne comparirà uno nuovo
 accanto (il bot logga un avviso in quel caso, senza bloccarsi).
+
+### Immagini delle carte
+
+Ogni carta mancante viene inviata come messaggio-foto (immagine da
+[YGOPRODeck](https://db.ygoprodeck.com), un database pubblico gratuito),
+con l'elenco dei mazzi che la richiedono nella didascalia. Se una carta
+non viene trovata nel database (nome scritto diversamente, refuso...) il
+bot fa fallback a un messaggio di solo testo per quella carta specifica,
+senza bloccare l'invio delle altre.
+
+Di conseguenza, se in un giorno mancano N carte diverse, arrivano N
+messaggi separati (uno per carta) invece di uno solo compatto — vengono
+comunque tutti cancellati e sostituiti ad ogni run, secondo la stessa
+logica "lista sempre aggiornata" descritta sopra.
 
 ## Rispetto del sito
 

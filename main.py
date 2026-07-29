@@ -53,7 +53,7 @@ def main():
     previous_message_ids = collection.get_last_message_ids()
     print(f"  Message_id precedenti trovati in state.db: {previous_message_ids}")
 
-    new_message_ids = notify_telegram.replace_report(report, previous_message_ids)
+    new_message_ids = notify_telegram.replace_report_with_images(report, previous_message_ids)
     print(f"  Nuovi message_id inviati: {new_message_ids}")
 
     collection.set_last_message_ids(new_message_ids)
