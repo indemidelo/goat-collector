@@ -71,7 +71,11 @@ COLLECTION_SHEET_COLUMNS = {
     "price_column": "Prezzo",
 }
 
-# Scheda "Unwanted Cards": carte che non ti interessano e vanno sempre
-# escluse dalle notifiche, indipendentemente da prezzo/possesso.
+# Scheda "Unwanted Cards": elenca MAZZI (non singole carte) a cui non sei
+# interessato. Tutte le carte di ciascun mazzo elencato vengono escluse
+# dalle notifiche, indipendentemente da prezzo/possesso. Struttura attesa:
+# colonna "Nome" (etichetta libera, solo per tuo riferimento) + colonna
+# "URL" (link al mazzo su formatlibrary.com, es. .../decks/81486).
 UNWANTED_CARDS_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQT99FFtHxN6zc8-o0wp3LtZUSW74FrDaMwxu-_9E7ySSpMvALbWSZG1qlesCrUMQcDshlaUu5aZ82S/pub?gid=1833902676&single=true&output=csv"
-UNWANTED_CARDS_NAME_COLUMN = "Nome"
+UNWANTED_DECKS_NAME_COLUMN = "Nome"
+UNWANTED_DECKS_URL_COLUMN = "URL"

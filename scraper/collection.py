@@ -5,7 +5,9 @@ processati, salvati in un piccolo database SQLite (data/state.db).
 
 import csv
 import io
+import re
 import sqlite3
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -120,11 +122,19 @@ def import_collection_from_sheets():
 
 def get_unwanted_cards():
     """
-    Legge la scheda "Unwanted Cards" pubblicata e ritorna un set di nomi di
-    carte da escludere sempre dalle notifiche, indipendentemente da prezzo
-    o possesso (vedi selectors.UNWANTED_CARDS_SHEET_URL).
+    Legge la scheda "Unwanted Cards" (colonne Nome + URL, dove ogni riga è
+    un MAZZO da escludere per intero): scarica ciascun mazzo elencato
+    tramite lo stesso meccanismo usato per gli eventi, e unisce tutte le
+    sue carte in un set di nomi da escludere sempre dalle notifiche,
+    indipendentemente da prezzo o possesso.
     """
-    name_col = selectors.UNWANTED_CARDS_NAME_COLUMN
+    # Import qui (non in cima al file) per evitare un giro di import
+    # circolare: fetch_decks non importa collection, quindi va bene, ma
+    # teniamolo locale per chiarezza del perché serve solo qui.
+    from . import fetch_decks
+
+    url_col = selectors.UNWANTED_DECKS_URL_COLUMN
+    name_col = selectors.UNWANTED_DECKS_NAME_COLUMN
 
     resp = requests.get(selectors.UNWANTED_CARDS_SHEET_URL, timeout=20)
     resp.raise_for_status()
@@ -133,9 +143,28 @@ def get_unwanted_cards():
 
     unwanted = set()
     for row in reader:
-        name = (row.get(name_col) or "").strip()
-        if name:
-            unwanted.add(name)
+        deck_url = (row.get(url_col) or "").strip()
+        label = (row.get(name_col) or "").strip()
+        if not deck_url:
+            continue
+
+        match = re.search(r"/decks/(\d+)", deck_url)
+        if not match:
+            print(f"  ⚠️  URL mazzo non riconosciuto in Unwanted Cards ({label or deck_url})")
+            continue
+        deck_id = match.group(1)
+
+        try:
+            detail = fetch_decks.fetch_deck_detail(deck_id)
+        except Exception as e:
+            print(f"  ⚠️  Errore leggendo mazzo unwanted {deck_id} ({label}): {e}")
+            continue
+
+        for card in detail["cards"]:
+            unwanted.add(card["name"])
+
+        time.sleep(1.0)  # gentile col server, come per gli altri fetch
+
     return unwanted
 
 
